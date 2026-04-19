@@ -2,5 +2,6 @@ Checks: >
     -*,
     cppcoreguidelines-*,
     -cppcoreguidelines-avoid-magic-numbers,
+    -cppcoreguidelines-owning-memory,
     bugprone-*,
     clang-analyzer-*
