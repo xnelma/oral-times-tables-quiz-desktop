@@ -1,6 +1,7 @@
 #include "quiz_config_widget.hpp"
 
 QuizConfigWidget::QuizConfigWidget(QWidget *parent)
+    : factorFrom_(1), factorTo_(20)
 {
     QGridLayout *layout = new QGridLayout();
     layout->setHorizontalSpacing(20);
@@ -45,7 +46,18 @@ QuizConfigWidget::QuizConfigWidget(QWidget *parent)
     QLabel *timesTablesLabel = new QLabel(tr("Times Tables:"));
     layout->addWidget(timesTablesLabel, 0, 0, Qt::AlignCenter);
 
-    QLabel *timesTables = new QLabel(tr("Add a number"));
+    auto toString = [](const QList<int> numbers) -> QString {
+        QString str;
+        for (const int n : numbers)
+            str += QString::number(n) + ", ";
+
+        if (str.length() < 2)
+            return "";
+        return str.first(str.length() - 2);
+    };
+    QLabel *timesTables = new QLabel(
+        timesTables_.empty() ? tr("Add a number") : toString(timesTables_));
+    // TODO set max width and elide
     timesTables->setFont(boldFont);
     layout->addWidget(timesTables, 1, 0, Qt::AlignCenter);
 
@@ -65,6 +77,7 @@ QuizConfigWidget::QuizConfigWidget(QWidget *parent)
     tablesSingleStep->setValue(10);
     tablesSingleStep->setAlignment(Qt::AlignCenter);
     tablesSingleStep->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    // TODO set button to remove table if value already in list
     timesTablesLayout->addWidget(tablesSingleStep, 0, 0);
 
     QPushButton *addTimesTable = new QPushButton(tr("Add"));
@@ -72,9 +85,17 @@ QuizConfigWidget::QuizConfigWidget(QWidget *parent)
     // normally wider than the spin box anyways: just in case. The column width
     // should be the maximum width of both widgets.
     addTimesTable->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    connect(addTimesTable, &QPushButton::pressed, this, [tablesSingleStep]() {
-        qInfo("Would add table %d", tablesSingleStep->value());
-    });
+    connect(addTimesTable,
+            &QPushButton::pressed,
+            this,
+            [this, tablesSingleStep, timesTables, toString]() {
+                const int v = tablesSingleStep->value();
+                if (!timesTables_.contains(v)) {
+                    timesTables_.push_back(v);
+                    // TODO use signals/slots
+                    timesTables->setText(toString(timesTables_));
+                }
+            });
     timesTablesLayout->addWidget(addTimesTable, 1, 0);
 
     QSlider *tablesDecimalStep = new QSlider(Qt::Vertical);
@@ -115,7 +136,10 @@ QuizConfigWidget::QuizConfigWidget(QWidget *parent)
     QLabel *factorsLabel = new QLabel(tr("Factors:"));
     layout->addWidget(factorsLabel, 0, 2, Qt::AlignCenter);
 
-    QLabel *factors = new QLabel("[1, 20]");
+    auto factorStr = [](const int &factorFrom, const int &factorTo) -> QString {
+        return QString("[%1, %2]").arg(factorFrom).arg(factorTo);
+    };
+    QLabel *factors = new QLabel(factorStr(factorFrom_, factorTo_));
     factors->setFont(boldFont);
     layout->addWidget(factors, 1, 2, Qt::AlignCenter);
 
@@ -138,44 +162,77 @@ QuizConfigWidget::QuizConfigWidget(QWidget *parent)
     QSlider *factorFromSlider = new QSlider(Qt::Vertical);
     factorFromSlider->setMinimum(1);
     factorFromSlider->setMaximum(100);
-    factorFromSlider->setValue(1);
+    factorFromSlider->setValue(factorFrom_);
     factorFromSlider->setInvertedAppearance(true);
-    connect(factorFromUp, &QToolButton::pressed, this, [factorFromSlider]() {
-        const int v =
-            factorFromSlider->value() - factorFromSlider->singleStep();
-        factorFromSlider->setValue(v);
-        // TODO set factorFrom
-    });
-    connect(factorFromDown, &QToolButton::pressed, this, [factorFromSlider]() {
-        const int v =
-            factorFromSlider->value() + factorFromSlider->singleStep();
-        factorFromSlider->setValue(v);
-        // TODO set factorFrom
-    });
+    connect(factorFromUp,
+            &QToolButton::pressed,
+            this,
+            [this, factorFromSlider, factors, factorStr]() {
+                const int v =
+                    factorFromSlider->value() - factorFromSlider->singleStep();
+                factorFromSlider->setValue(v);
+                factorFrom_ = v;
+                // TODO use signals/slots
+                factors->setText(factorStr(factorFrom_, factorTo_));
+            });
+    connect(factorFromDown,
+            &QToolButton::pressed,
+            this,
+            [this, factorFromSlider, factors, factorStr]() {
+                const int v =
+                    factorFromSlider->value() + factorFromSlider->singleStep();
+                factorFromSlider->setValue(v);
+                factorFrom_ = v;
+                factors->setText(factorStr(factorFrom_, factorTo_));
+            });
+    connect(factorFromSlider,
+            &QSlider::valueChanged,
+            this,
+            [this, factors, factorStr](const int &v) {
+                factorFrom_ = v;
+                factors->setText(factorStr(factorFrom_, factorTo_));
+            });
     factorsLayout->addWidget(factorFromSlider, 0, 1, 2, 1);
 
     QSlider *factorToSlider = new QSlider(Qt::Vertical);
     factorToSlider->setMinimum(1);
     factorToSlider->setMaximum(100);
-    factorToSlider->setValue(20);
+    factorToSlider->setValue(factorTo_);
     factorToSlider->setInvertedAppearance(true);
+    connect(factorToSlider,
+            &QSlider::valueChanged,
+            this,
+            [this, factors, factorStr](const int &v) {
+                factorTo_ = v;
+                factors->setText(factorStr(factorFrom_, factorTo_));
+            });
     factorsLayout->addWidget(factorToSlider, 0, 2, 2, 1);
 
     QToolButton *factorToUp = new QToolButton();
     factorToUp->setArrowType(Qt::UpArrow);
-    connect(factorToUp, &QToolButton::pressed, this, [factorToSlider]() {
-        const int v = factorToSlider->value() - factorToSlider->singleStep();
-        factorToSlider->setValue(v);
-        // TODO set factorTo
-    });
+    connect(factorToUp,
+            &QToolButton::pressed,
+            this,
+            [this, factorToSlider, factors, factorStr]() {
+                const int v =
+                    factorToSlider->value() - factorToSlider->singleStep();
+                factorToSlider->setValue(v);
+                factorTo_ = v;
+                factors->setText(factorStr(factorFrom_, factorTo_));
+            });
     factorsLayout->addWidget(factorToUp, 0, 3, Qt::AlignTop);
 
     QToolButton *factorToDown = new QToolButton();
     factorToDown->setArrowType(Qt::DownArrow);
-    connect(factorToDown, &QToolButton::pressed, this, [factorToSlider]() {
-        const int v = factorToSlider->value() + factorToSlider->singleStep();
-        factorToSlider->setValue(v);
-        // TODO set factorTo
-    });
+    connect(factorToDown,
+            &QToolButton::pressed,
+            this,
+            [this, factorToSlider, factors, factorStr]() {
+                const int v =
+                    factorToSlider->value() + factorToSlider->singleStep();
+                factorToSlider->setValue(v);
+                factorTo_ = v;
+                factors->setText(factorStr(factorFrom_, factorTo_));
+            });
     factorsLayout->addWidget(factorToDown, 1, 3, Qt::AlignBottom);
 }
