@@ -1,13 +1,10 @@
 #include "mainwindow.hpp"
-#include "ui_mainwindow.h"
+#include "quiz_config_widget.hpp"
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow)
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    ui->setupUi(this);
-}
+    setWindowTitle("OTTQ");
 
-MainWindow::~MainWindow()
-{
-    delete ui;
+    QuizConfigWidget *quizConfig = new QuizConfigWidget(this);
+    setCentralWidget(quizConfig);
 }
