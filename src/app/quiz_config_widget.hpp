@@ -1,8 +1,8 @@
 #ifndef OTTQD_20260418_1202_INCLUDE
 #define OTTQD_20260418_1202_INCLUDE
 
+#include "quiz_config.hpp"
 #include <QtWidgets>
-#include <QList>
 
 class QuizConfigWidget : public QWidget
 {
@@ -12,9 +12,7 @@ public:
     explicit QuizConfigWidget(QWidget *parent);
 
 private:
-    QList<int> timesTables_;
-    int factorFrom_;
-    int factorTo_;
+    QuizConfiguration *config_;
 };
 
 #endif // OTTQD_20260418_1202_INCLUDE
